@@ -11,8 +11,21 @@ import com.example.issuespot.domain.dtos.CoordinatesDto;
 
 @Mapper(componentModel = "spring")
 public interface PostMapper {
+    @Mapping(target = "id", source = "post.id")
+    @Mapping(target = "userId", source = "post.userId")
+    @Mapping(target = "postLevel", source = "post.postLevel")
+    @Mapping(target = "postText", source = "post.postText")
+    @Mapping(target = "mediaType", source = "post.mediaType")
+    @Mapping(target = "mediaUrl", source = "post.mediaUrl")
+    @Mapping(target = "likes", source = "post.likes")
+    @Mapping(target = "comments", source = "post.comments")
+    @Mapping(target = "createdAt", source = "post.createdAt")
+    @Mapping(target = "locality", source = "post.locality")
+    @Mapping(target = "district", source = "post.district")
+    @Mapping(target = "state", source = "post.state")
+    @Mapping(target = "country", source = "post.country")
     @Mapping(target = "profiles", source = "profile")
-    @Mapping(target = "coordinates", source = "coordinates", qualifiedByName = "pointToDto")
+    @Mapping(target = "coordinates", source = "post.coordinates", qualifiedByName = "pointToDto")
     PostWithProfileDto toDto(Post post, Profile profile);
 
     @Mapping(target = "id", source = "id")
