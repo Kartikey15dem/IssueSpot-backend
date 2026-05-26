@@ -5,8 +5,7 @@ import java.util.UUID;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-@Entity
-@Table(name = "app_users")
+@Entity @Table(name = "app_users")
 @Getter @Setter @NoArgsConstructor
 public class AppUser {
   @Id @GeneratedValue(strategy = GenerationType.UUID)

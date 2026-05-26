@@ -1,4 +1,3 @@
 package com.example.issuespot.domain.dtos;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.*;
 public record AuthRequestOtpRequest(@NotBlank @Email String email) {}

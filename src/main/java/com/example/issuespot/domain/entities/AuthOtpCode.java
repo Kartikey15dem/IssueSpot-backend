@@ -4,8 +4,7 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-@Entity
-@Table(name = "auth_otp_codes")
+@Entity @Table(name = "auth_otp_codes")
 @Getter @Setter @NoArgsConstructor
 public class AuthOtpCode {
   @Id @GeneratedValue(strategy = GenerationType.UUID)
