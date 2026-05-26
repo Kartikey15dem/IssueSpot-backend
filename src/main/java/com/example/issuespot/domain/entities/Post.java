@@ -14,9 +14,9 @@ public class Post {
   @Id @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
   @Column(name = "user_id", nullable = false) private UUID userId;
-  @Enumerated(EnumType.STRING) @Column(name = "post_level", nullable = false) private PostLevel postLevel;
+   @Column(name = "post_level", nullable = false) private PostLevel postLevel;
   @Column(name = "post_text", nullable = false) private String postText;
-  @Enumerated(EnumType.STRING) @Column(name = "media_type", nullable = false) private MediaType mediaType;
+   @Column(name = "media_type", nullable = false) private MediaType mediaType;
   @Column(name = "media_url") private String mediaUrl;
   @Column(nullable = false) private int likes;
   @Column(nullable = false) private int comments;

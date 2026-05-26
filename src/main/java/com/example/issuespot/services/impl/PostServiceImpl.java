@@ -34,20 +34,20 @@ public class PostServiceImpl implements PostService {
     
     if (pl == PostLevel.LOCALITY) {
         if (lat != null && lon != null) {
-            postsPage = postRepository.findByPostLevelAndCoordinatesNear(pl.name(), lat, lon, 10000.0, pageable);
+            postsPage = postRepository.findByPostLevelAndCoordinatesNear(pl, lat, lon, 10000.0, pageable);
         } else if (locality != null) {
-            postsPage = postRepository.findByPostLevelAndLocalityOrderByCreatedAtDesc(pl.name(), locality, pageable);
+            postsPage = postRepository.findByPostLevelAndLocalityOrderByCreatedAtDesc(pl, locality, pageable);
         } else {
-            postsPage = postRepository.findByPostLevelOrderByCreatedAtDesc(pl.name(), pageable);
+            postsPage = postRepository.findByPostLevelOrderByCreatedAtDesc(pl, pageable);
         }
     } else if (pl == PostLevel.DISTRICT && district != null) {
-        postsPage = postRepository.findByPostLevelAndDistrictOrderByCreatedAtDesc(pl.name(), district, pageable);
+        postsPage = postRepository.findByPostLevelAndDistrictOrderByCreatedAtDesc(pl, district, pageable);
     } else if (pl == PostLevel.STATE && state != null) {
-        postsPage = postRepository.findByPostLevelAndStateOrderByCreatedAtDesc(pl.name(), state, pageable);
+        postsPage = postRepository.findByPostLevelAndStateOrderByCreatedAtDesc(pl, state, pageable);
     } else if (pl == PostLevel.NATIONAL && country != null) {
-        postsPage = postRepository.findByPostLevelAndCountryOrderByCreatedAtDesc(pl.name(), country, pageable);
+        postsPage = postRepository.findByPostLevelAndCountryOrderByCreatedAtDesc(pl, country, pageable);
     } else {
-        postsPage = postRepository.findByPostLevelOrderByCreatedAtDesc(pl.name(), pageable);
+        postsPage = postRepository.findByPostLevelOrderByCreatedAtDesc(pl, pageable);
     }
     return toPagedResponse(postsPage);
   }
@@ -65,7 +65,7 @@ public class PostServiceImpl implements PostService {
     post.setUserId(userId);
     post.setPostLevel(PostLevel.valueOf(request.postLevel().toUpperCase()));
     post.setPostText(request.postText());
-    post.setMediaType(MediaType.valueOf(request.mediaType().toUpperCase()));
+    try { post.setMediaType(MediaType.valueOf(request.mediaType().toUpperCase())); } catch(Exception e) { post.setMediaType(MediaType.TEXT); }
     post.setMediaUrl(request.mediaUrl());
     post.setLocality(request.locality());
     post.setDistrict(request.district());
