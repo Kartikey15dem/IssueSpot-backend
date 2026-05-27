@@ -1,5 +1,6 @@
 package com.example.issuespot.services;
 import com.example.issuespot.domain.dtos.*;
+import java.util.List;
 import java.util.UUID;
 public interface PostService {
     PagedResponse<PostWithProfileDto> getPostsByLevel(String level, String locality, String district, String state, String country, Double lat, Double lon, int page, int limit);
@@ -7,6 +8,7 @@ public interface PostService {
     PostWithProfileDto createPost(UUID userId, CreatePostRequest request);
     void deletePost(UUID userId, UUID postId);
     void toggleLike(UUID userId, UUID postId);
+        PagedResponse<CommentDto> getComments(UUID postId, int page, int limit);
     void addComment(UUID userId, UUID postId, String comment);
     void reportPost(UUID userId, UUID postId, String reason);
     void sharePost(UUID userId, UUID postId);

@@ -94,6 +94,30 @@ public class PostServiceImpl implements PostService {
     }
   }
 
+  @Override @Transactional(readOnly = true)
+  public PagedResponse<CommentDto> getComments(UUID postId, int page, int limit) {
+    Page<PostComment> commentsPage = postCommentRepository.findByPostIdOrderByCreatedAtDesc(postId, PageRequest.of(page, limit));
+    Set<UUID> userIds = new HashSet<>();
+    for (PostComment c : commentsPage.getContent()) {
+        userIds.add(c.getUserId());
+    }
+    Map<UUID, Profile> profileMap = new HashMap<>();
+    for (Profile profile : profileRepository.findAllById(userIds)) {
+        profileMap.put(profile.getId(), profile);
+    }
+    
+    List<CommentDto> dtos = commentsPage.getContent().stream().map(c -> {
+        Profile p = profileMap.get(c.getUserId());
+        ProfileInfoDto profileInfo = p != null ? new ProfileInfoDto(p.getId(), p.getName(), p.getImageUrl()) : null;
+        return new CommentDto(c.getId(), c.getPostId(), c.getCommentText(), c.getCreatedAt(), profileInfo);
+    }).toList();
+    
+    Integer prevKey = commentsPage.hasPrevious() ? commentsPage.getNumber() - 1 : null;
+    Integer nextKey = commentsPage.hasNext() ? commentsPage.getNumber() + 1 : null;
+    
+    return new PagedResponse<>(dtos, prevKey, nextKey);
+  }
+
   @Override @Transactional
   public void addComment(UUID userId, UUID postId, String comment) {
     PostComment c = new PostComment();
