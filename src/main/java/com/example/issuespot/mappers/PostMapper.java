@@ -16,7 +16,7 @@ public interface PostMapper {
     @Mapping(target = "postLevel", source = "post.postLevel")
     @Mapping(target = "postText", source = "post.postText")
     @Mapping(target = "mediaType", source = "post.mediaType")
-    @Mapping(target = "mediaUrl", source = "post.mediaUrl")
+    @Mapping(target = "mediaUrls", source = "post.mediaUrls")
     @Mapping(target = "likes", source = "post.likes")
     @Mapping(target = "comments", source = "post.comments")
     @Mapping(target = "createdAt", source = "post.createdAt")

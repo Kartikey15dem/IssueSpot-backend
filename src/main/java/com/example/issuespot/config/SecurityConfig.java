@@ -14,6 +14,7 @@ public class SecurityConfig {
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/s3-v2-test").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/v1/posts/**").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/v1/active_issues_count/**").permitAll()
             .anyRequest().authenticated())

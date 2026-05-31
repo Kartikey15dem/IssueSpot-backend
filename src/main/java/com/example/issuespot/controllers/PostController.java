@@ -5,6 +5,8 @@ import com.example.issuespot.util.SecurityUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 import java.util.List;
 import java.util.UUID;
 import com.example.issuespot.exceptions.BadRequestException;
@@ -24,10 +26,12 @@ public class PostController {
     return postService.getPostsByLevel(effective, locality, district, state, country, lat, lon, page, limit);
   }
   
-  @PostMapping 
-  public PostWithProfileDto createPost(@Valid @RequestBody CreatePostRequest request) {
+  @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE }) 
+  public PostWithProfileDto createPost(
+      @RequestPart("request") @Valid CreatePostRequest request,
+      @RequestPart(value = "files", required = false) List<MultipartFile> files) {
     UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
-    return postService.createPost(userId, request);
+    return postService.createPost(userId, request, files);
   }
   
   @DeleteMapping("/{postId}")

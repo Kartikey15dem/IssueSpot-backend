@@ -8,6 +8,9 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.locationtech.jts.geom.Point;
+import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.JdbcTypeCode;
+import java.util.List;
 @Entity @Table(name = "posts")
 @Getter @Setter @NoArgsConstructor
 public class Post {
@@ -17,7 +20,8 @@ public class Post {
    @Column(name = "post_level", nullable = false) private PostLevel postLevel;
   @Column(name = "post_text", nullable = false) private String postText;
    @Column(name = "media_type", nullable = false) private MediaType mediaType;
-  @Column(name = "media_url") private String mediaUrl;
+  @JdbcTypeCode(SqlTypes.ARRAY)
+  @Column(name = "media_urls", columnDefinition = "text[]") private List<String> mediaUrls;
   @Column(nullable = false) private int likes;
   @Column(nullable = false) private int comments;
   private String locality;

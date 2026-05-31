@@ -6,9 +6,12 @@ import com.example.issuespot.exceptions.*;
 import com.example.issuespot.mappers.PostMapper;
 import com.example.issuespot.repositories.*;
 import com.example.issuespot.services.PostService;
+import com.example.issuespot.services.S3StorageService;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.*;
 import org.springframework.data.domain.*;
+import org.springframework.web.multipart.MultipartFile;
+import java.util.ArrayList;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
@@ -18,6 +21,7 @@ import java.util.*;
 public class PostServiceImpl implements PostService {
   private final PostRepository postRepository;
   private final ProfileRepository profileRepository;
+  private final S3StorageService s3StorageService;
   private final PostAckRepository postAckRepository;
   private final PostCommentRepository postCommentRepository;
   private final PostReportRepository postReportRepository;
@@ -59,14 +63,21 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override @Transactional
-  public PostWithProfileDto createPost(UUID userId, CreatePostRequest request) {
+  public PostWithProfileDto createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files) {
     Profile profile = profileRepository.findById(userId).orElseThrow(() -> new BadRequestException("Profile missing"));
     Post post = new Post();
     post.setUserId(userId);
     post.setPostLevel(PostLevel.valueOf(request.postLevel().toUpperCase()));
     post.setPostText(request.postText());
     try { post.setMediaType(MediaType.valueOf(request.mediaType().toUpperCase())); } catch(Exception e) { post.setMediaType(MediaType.TEXT); }
-    post.setMediaUrl(request.mediaUrl());
+        List<String> finalMediaUrls = new ArrayList<>();
+    if (request.mediaUrls() != null) {
+        finalMediaUrls.addAll(request.mediaUrls()); // Keep any already resolved URLs
+    }
+    if (files != null && !files.isEmpty()) {
+        finalMediaUrls.addAll(s3StorageService.uploadFiles(files));
+    }
+    post.setMediaUrls(finalMediaUrls.isEmpty() ? null : finalMediaUrls);
     post.setLocality(request.locality());
     post.setDistrict(request.district());
     post.setState(request.state());
@@ -74,7 +85,8 @@ public class PostServiceImpl implements PostService {
     if (request.coordinates() != null) {
         post.setCoordinates(geometryFactory.createPoint(new Coordinate(request.coordinates().longitude(), request.coordinates().latitude())));
     }
-    return postMapper.toDto(postRepository.save(post), profile);
+        Post savedPost = postRepository.saveAndFlush(post);
+    return postMapper.toDto(savedPost, profile);
   }
 
   @Override @Transactional
