@@ -27,11 +27,11 @@ public class PostController {
   }
   
   @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE }) 
-  public PostWithProfileDto createPost(
+  public void createPost(
       @RequestPart("request") @Valid CreatePostRequest request,
       @RequestPart(value = "files", required = false) List<MultipartFile> files) {
     UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
-    return postService.createPost(userId, request, files);
+    postService.createPost(userId, request, files);
   }
   
   @DeleteMapping("/{postId}")

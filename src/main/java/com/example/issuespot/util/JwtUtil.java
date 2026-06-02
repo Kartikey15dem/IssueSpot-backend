@@ -19,7 +19,7 @@ public class JwtUtil {
     JwtClaimsSet claims = JwtClaimsSet.builder()
         .issuer("issuespot")
         .issuedAt(now)
-        .expiresAt(now.plus(12, ChronoUnit.HOURS))
+        .expiresAt(now.plus(3600, ChronoUnit.HOURS))
         .subject(userId.toString())
         .claim("email", email)
         .build();

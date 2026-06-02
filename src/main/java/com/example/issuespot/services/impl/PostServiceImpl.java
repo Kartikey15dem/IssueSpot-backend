@@ -63,11 +63,11 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override @Transactional
-  public PostWithProfileDto createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files) {
+  public void createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files) {
     Profile profile = profileRepository.findById(userId).orElseThrow(() -> new BadRequestException("Profile missing"));
     Post post = new Post();
     post.setUserId(userId);
-    post.setPostLevel(PostLevel.valueOf(request.postLevel().toUpperCase()));
+    post.setPostLevel(PostLevel.LOCALITY);
     post.setPostText(request.postText());
     try { post.setMediaType(MediaType.valueOf(request.mediaType().toUpperCase())); } catch(Exception e) { post.setMediaType(MediaType.TEXT); }
         List<String> finalMediaUrls = new ArrayList<>();
@@ -85,8 +85,8 @@ public class PostServiceImpl implements PostService {
     if (request.coordinates() != null) {
         post.setCoordinates(geometryFactory.createPoint(new Coordinate(request.coordinates().longitude(), request.coordinates().latitude())));
     }
-        Post savedPost = postRepository.saveAndFlush(post);
-    return postMapper.toDto(savedPost, profile);
+        postRepository.save(post);
+    
   }
 
   @Override @Transactional
