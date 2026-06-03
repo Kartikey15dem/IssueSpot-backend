@@ -19,13 +19,13 @@ public class ProfileController {
     UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new RuntimeException("Unauthorized"));
     return profileService.upsertProfile(userId, request);
   }
-  @GetMapping("/me/liked-posts") public PagedResponse<PostWithProfileDto> getMyLikedPosts(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int limit) {
+  @GetMapping("/me/liked-posts") public PagedResponse<PostWithProfileDto> getMyLikedPosts(@RequestParam(defaultValue="LATEST") String sort, @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int limit) {
     UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new RuntimeException("Unauthorized"));
-    return postService.getPostsLikedByUser(userId, page, limit);
+    return postService.getPostsLikedByUser(userId, sort, page, limit);
   }
 
-  @GetMapping("/me/posts") public PagedResponse<PostWithProfileDto> getMyPosts(@RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int limit) {
+  @GetMapping("/me/posts") public PagedResponse<PostWithProfileDto> getMyPosts(@RequestParam(defaultValue="LATEST") String sort, @RequestParam(defaultValue="0") int page, @RequestParam(defaultValue="20") int limit) {
     UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new RuntimeException("Unauthorized"));
-    return postService.getPostsByUser(userId, page, limit);
+    return postService.getPostsByUser(userId, sort, page, limit);
   }
 }

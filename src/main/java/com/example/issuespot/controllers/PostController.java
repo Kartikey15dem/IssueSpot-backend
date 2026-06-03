@@ -71,4 +71,18 @@ public class PostController {
     UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
     postService.sharePost(userId, postId);
   }
+
+  @GetMapping("/search")
+  public PagedResponse<PostWithProfileDto> searchPosts(
+      @RequestParam String query,
+      @RequestParam String level,
+      @RequestParam(defaultValue="0") int page,
+      @RequestParam(defaultValue="20") int limit) {
+    return postService.searchPosts(query, level, page, limit);
+  }
+
+  @GetMapping("/{postId}")
+  public PostWithProfileDto getPost(@PathVariable UUID postId) {
+    return postService.getPostById(postId);
+  }
 }

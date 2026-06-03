@@ -86,6 +86,20 @@ public class PostServiceImpl implements PostService {
         post.setCoordinates(geometryFactory.createPoint(new Coordinate(request.coordinates().longitude(), request.coordinates().latitude())));
     }
         postRepository.save(post);
+        // Update active issues count
+        activeIssuesCountRepository.findById(post.getPostLevel().name()).ifPresentOrElse(
+            c -> {
+                c.setTotalActiveIssues(c.getTotalActiveIssues() + 1);
+                activeIssuesCountRepository.save(c);
+            },
+            () -> {
+                ActiveIssuesCount c = new ActiveIssuesCount();
+                c.setLevel(post.getPostLevel().name());
+                c.setTotalActiveIssues(1);
+                c.setUpdatedAt(Instant.now());
+                activeIssuesCountRepository.save(c);
+            }
+        );
     
   }
 
@@ -94,16 +108,26 @@ public class PostServiceImpl implements PostService {
     Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException("Post not found"));
     if (!post.getUserId().equals(userId)) throw new BadRequestException("Not allowed");
     postRepository.delete(post);
+    // Update active issues count
+    activeIssuesCountRepository.findById(post.getPostLevel().name()).ifPresent(c -> {
+        c.setTotalActiveIssues(Math.max(0, c.getTotalActiveIssues() - 1));
+        activeIssuesCountRepository.save(c);
+    });
   }
 
   @Override @Transactional
   public void toggleLike(UUID userId, UUID postId) {
     PostAckId id = new PostAckId(userId, postId);
-    if (postAckRepository.existsById(id)) postAckRepository.deleteById(id);
-    else {
+    Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException("Post not found"));
+    if (postAckRepository.existsById(id)) {
+        postAckRepository.deleteById(id);
+        post.setLikes(Math.max(0, post.getLikes() - 1));
+    } else {
         PostAck ack = new PostAck(); ack.setId(id);
         postAckRepository.save(ack);
+        post.setLikes(post.getLikes() + 1);
     }
+    postRepository.save(post);
   }
 
   @Override @Transactional(readOnly = true)
@@ -132,9 +156,12 @@ public class PostServiceImpl implements PostService {
 
   @Override @Transactional
   public void addComment(UUID userId, UUID postId, String comment) {
+    Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException("Post not found"));
     PostComment c = new PostComment();
     c.setPostId(postId); c.setUserId(userId); c.setCommentText(comment);
     postCommentRepository.save(c);
+    post.setComments(post.getComments() + 1);
+    postRepository.save(post);
   }
 
   @Override @Transactional
@@ -152,13 +179,25 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override @Transactional(readOnly = true)
-  public PagedResponse<PostWithProfileDto> getPostsByUser(UUID userId, int page, int limit) {
-    return toPagedResponse(postRepository.findByUserIdOrderByCreatedAtDesc(userId, PageRequest.of(page, limit)));
+  public PagedResponse<PostWithProfileDto> getPostsByUser(UUID userId, String sort, int page, int limit) {
+    Pageable pageable = PageRequest.of(page, limit);
+    Page<Post> postsPage = switch (sort.toUpperCase()) {
+        case "OLDEST" -> postRepository.findByUserIdOrderByCreatedAtAsc(userId, pageable);
+        case "POPULAR" -> postRepository.findByUserIdOrderByLikesDesc(userId, pageable);
+        default -> postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+    };
+    return toPagedResponse(postsPage);
   }
 
   @Override @Transactional(readOnly = true)
-  public PagedResponse<PostWithProfileDto> getPostsLikedByUser(UUID userId, int page, int limit) {
-    return toPagedResponse(postRepository.findLikedPostsByUser(userId, PageRequest.of(page, limit)));
+  public PagedResponse<PostWithProfileDto> getPostsLikedByUser(UUID userId, String sort, int page, int limit) {
+    Pageable pageable = PageRequest.of(page, limit);
+    Page<Post> postsPage = switch (sort.toUpperCase()) {
+        case "OLDEST" -> postRepository.findLikedPostsByUserOrderByCreatedAtAsc(userId, pageable);
+        case "POPULAR" -> postRepository.findLikedPostsByUserOrderByLikesDesc(userId, pageable);
+        default -> postRepository.findLikedPostsByUserOrderByCreatedAtDesc(userId, pageable);
+    };
+    return toPagedResponse(postsPage);
   }
 
   private PagedResponse<PostWithProfileDto> toPagedResponse(Page<Post> postsPage) {
@@ -168,5 +207,27 @@ public class PostServiceImpl implements PostService {
     profileRepository.findAllById(userIds).forEach(pr -> profileMap.put(pr.getId(), pr));
     List<PostWithProfileDto> dtos = postsPage.getContent().stream().map(p -> postMapper.toDto(p, profileMap.get(p.getUserId()))).toList();
     return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null);
+  }
+
+  @Override @Transactional(readOnly = true)
+  public PagedResponse<PostWithProfileDto> searchPosts(String query, String level, int page, int limit) {
+    Page<Post> postsPage = postRepository.findByPostTextContainingIgnoreCaseAndPostLevel(query, PostLevel.valueOf(level.toUpperCase()), PageRequest.of(page, limit));
+    List<PostWithProfileDto> dtos = new ArrayList<>();
+    Map<UUID, Profile> profileMap = new HashMap<>();
+    Set<UUID> userIds = new HashSet<>();
+    for (Post p : postsPage.getContent()) userIds.add(p.getUserId());
+    for (Profile prof : profileRepository.findAllById(userIds)) profileMap.put(prof.getId(), prof);
+    for (Post p : postsPage.getContent()) {
+        Profile prof = profileMap.get(p.getUserId());
+        dtos.add(postMapper.toDto(p, prof));
+    }
+    return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null);
+  }
+
+  @Override @Transactional(readOnly = true)
+  public PostWithProfileDto getPostById(UUID postId) {
+    Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException("Post not found"));
+    Profile profile = profileRepository.findById(post.getUserId()).orElse(null);
+    return postMapper.toDto(post, profile);
   }
 }

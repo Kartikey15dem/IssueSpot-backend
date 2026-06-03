@@ -11,9 +11,16 @@ import com.example.issuespot.domain.enums.PostLevel;
 public interface PostRepository extends JpaRepository<Post, UUID> {
   Page<Post> findByPostLevelOrderByCreatedAtDesc(com.example.issuespot.domain.enums.PostLevel postLevel, Pageable pageable);
   Page<Post> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
+    Page<Post> findByPostTextContainingIgnoreCaseAndPostLevel(String query, PostLevel postLevel, Pageable pageable);
+  Page<Post> findByUserIdOrderByCreatedAtAsc(UUID userId, Pageable pageable);
+  Page<Post> findByUserIdOrderByLikesDesc(UUID userId, Pageable pageable);
   
-  @Query("SELECT p FROM Post p JOIN PostAck a ON p.id = a.id.postId WHERE a.id.userId = :userId ORDER BY a.createdAt DESC")
-  Page<Post> findLikedPostsByUser(@Param("userId") UUID userId, Pageable pageable);
+    @Query("SELECT p FROM Post p JOIN PostAck a ON p.id = a.id.postId WHERE a.id.userId = :userId ORDER BY a.createdAt DESC")
+  Page<Post> findLikedPostsByUserOrderByCreatedAtDesc(@Param("userId") UUID userId, Pageable pageable);
+  @Query("SELECT p FROM Post p JOIN PostAck a ON p.id = a.id.postId WHERE a.id.userId = :userId ORDER BY a.createdAt ASC")
+  Page<Post> findLikedPostsByUserOrderByCreatedAtAsc(@Param("userId") UUID userId, Pageable pageable);
+  @Query("SELECT p FROM Post p JOIN PostAck a ON p.id = a.id.postId WHERE a.id.userId = :userId ORDER BY p.likes DESC")
+  Page<Post> findLikedPostsByUserOrderByLikesDesc(@Param("userId") UUID userId, Pageable pageable);
   
   Page<Post> findByPostLevelAndLocalityOrderByCreatedAtDesc(com.example.issuespot.domain.enums.PostLevel postLevel, String locality, Pageable pageable);
   Page<Post> findByPostLevelAndDistrictOrderByCreatedAtDesc(com.example.issuespot.domain.enums.PostLevel postLevel, String district, Pageable pageable);

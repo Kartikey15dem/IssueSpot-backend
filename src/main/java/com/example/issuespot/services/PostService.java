@@ -13,6 +13,9 @@ public interface PostService {
     void addComment(UUID userId, UUID postId, String comment);
     void reportPost(UUID userId, UUID postId, String reason);
     void sharePost(UUID userId, UUID postId);
-    PagedResponse<PostWithProfileDto> getPostsByUser(UUID userId, int page, int limit);
-    PagedResponse<PostWithProfileDto> getPostsLikedByUser(UUID userId, int page, int limit);
+    PagedResponse<PostWithProfileDto> getPostsByUser(UUID userId, String sort, int page, int limit);
+    PagedResponse<PostWithProfileDto> getPostsLikedByUser(UUID userId, String sort, int page, int limit);
+
+    PagedResponse<PostWithProfileDto> searchPosts(String query, String level, int page, int limit);
+    PostWithProfileDto getPostById(UUID postId);
 }
