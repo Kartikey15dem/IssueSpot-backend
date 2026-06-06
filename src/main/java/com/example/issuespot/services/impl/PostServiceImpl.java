@@ -7,6 +7,7 @@ import com.example.issuespot.mappers.PostMapper;
 import com.example.issuespot.repositories.*;
 import com.example.issuespot.services.PostService;
 import com.example.issuespot.services.S3StorageService;
+import com.example.issuespot.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.locationtech.jts.geom.*;
 import org.springframework.data.domain.*;
@@ -133,7 +134,7 @@ public class PostServiceImpl implements PostService {
   @Override @Transactional(readOnly = true)
   public PagedResponse<CommentDto> getComments(UUID postId, int page, int limit) {
     Page<PostComment> commentsPage = postCommentRepository.findByPostIdOrderByCreatedAtDesc(postId, PageRequest.of(page, limit));
-    Set<UUID> userIds = new HashSet<>();
+    Optional<UUID> currentUserId = SecurityUtil.currentUserId(); Set<UUID> userIds = new HashSet<>();
     for (PostComment c : commentsPage.getContent()) {
         userIds.add(c.getUserId());
     }
@@ -201,11 +202,11 @@ public class PostServiceImpl implements PostService {
   }
 
   private PagedResponse<PostWithProfileDto> toPagedResponse(Page<Post> postsPage) {
-    Set<UUID> userIds = new HashSet<>();
+    Optional<UUID> currentUserId = SecurityUtil.currentUserId(); Set<UUID> userIds = new HashSet<>();
     postsPage.getContent().forEach(p -> userIds.add(p.getUserId()));
     Map<UUID, Profile> profileMap = new HashMap<>();
     profileRepository.findAllById(userIds).forEach(pr -> profileMap.put(pr.getId(), pr));
-    List<PostWithProfileDto> dtos = postsPage.getContent().stream().map(p -> postMapper.toDto(p, profileMap.get(p.getUserId()))).toList();
+    List<PostWithProfileDto> dtos = postsPage.getContent().stream().map(p -> { boolean isLiked = currentUserId.map(uid -> postAckRepository.existsById(new PostAckId(uid, p.getId()))).orElse(false); boolean isReported = currentUserId.map(uid -> postReportRepository.existsByPostIdAndUserId(p.getId(), uid)).orElse(false); return postMapper.toDto(p, profileMap.get(p.getUserId()), isLiked, isReported); }).toList();
     return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null);
   }
 
@@ -214,12 +215,12 @@ public class PostServiceImpl implements PostService {
     Page<Post> postsPage = postRepository.findByPostTextContainingIgnoreCaseAndPostLevel(query, PostLevel.valueOf(level.toUpperCase()), PageRequest.of(page, limit));
     List<PostWithProfileDto> dtos = new ArrayList<>();
     Map<UUID, Profile> profileMap = new HashMap<>();
-    Set<UUID> userIds = new HashSet<>();
+    Optional<UUID> currentUserId = SecurityUtil.currentUserId(); Set<UUID> userIds = new HashSet<>();
     for (Post p : postsPage.getContent()) userIds.add(p.getUserId());
     for (Profile prof : profileRepository.findAllById(userIds)) profileMap.put(prof.getId(), prof);
     for (Post p : postsPage.getContent()) {
         Profile prof = profileMap.get(p.getUserId());
-        dtos.add(postMapper.toDto(p, prof));
+        boolean isLiked = currentUserId.map(uid -> postAckRepository.existsById(new PostAckId(uid, p.getId()))).orElse(false); boolean isReported = currentUserId.map(uid -> postReportRepository.existsByPostIdAndUserId(p.getId(), uid)).orElse(false); dtos.add(postMapper.toDto(p, prof, isLiked, isReported));
     }
     return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null);
   }
@@ -228,6 +229,6 @@ public class PostServiceImpl implements PostService {
   public PostWithProfileDto getPostById(UUID postId) {
     Post post = postRepository.findById(postId).orElseThrow(() -> new PostNotFoundException("Post not found"));
     Profile profile = profileRepository.findById(post.getUserId()).orElse(null);
-    return postMapper.toDto(post, profile);
+    Optional<UUID> currentUserId2 = SecurityUtil.currentUserId(); boolean isLiked = currentUserId2.map(uid -> postAckRepository.existsById(new PostAckId(uid, post.getId()))).orElse(false); boolean isReported = currentUserId2.map(uid -> postReportRepository.existsByPostIdAndUserId(post.getId(), uid)).orElse(false); return postMapper.toDto(post, profile, isLiked, isReported);
   }
 }

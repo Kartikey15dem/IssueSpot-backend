@@ -26,7 +26,9 @@ public interface PostMapper {
     @Mapping(target = "country", source = "post.country")
     @Mapping(target = "profiles", source = "profile")
     @Mapping(target = "coordinates", source = "post.coordinates", qualifiedByName = "pointToDto")
-    PostWithProfileDto toDto(Post post, Profile profile);
+    @Mapping(target = "isLiked", source = "isLiked")
+    @Mapping(target = "isReported", source = "isReported")
+    PostWithProfileDto toDto(Post post, Profile profile, boolean isLiked, boolean isReported);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")

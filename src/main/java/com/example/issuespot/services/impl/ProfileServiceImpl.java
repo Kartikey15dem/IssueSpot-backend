@@ -1,17 +1,23 @@
 package com.example.issuespot.services.impl;
 import com.example.issuespot.domain.dtos.*;
 import com.example.issuespot.domain.entities.Profile;
+import com.example.issuespot.domain.entities.AppUser;
 import com.example.issuespot.exceptions.NotFoundException;
+import com.example.issuespot.exceptions.BadRequestException;
 import com.example.issuespot.mappers.ProfileMapper;
 import com.example.issuespot.repositories.PostRepository;
+import com.example.issuespot.repositories.AppUserRepository;
 import com.example.issuespot.domain.enums.PostLevel;
 import java.util.List;
 import java.util.Arrays;
 import com.example.issuespot.repositories.ProfileRepository;
 import com.example.issuespot.services.ProfileService;
+import com.example.issuespot.services.AuthService;
+import com.example.issuespot.services.S3StorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.UUID;
 
 @Service @RequiredArgsConstructor
@@ -19,6 +25,9 @@ public class ProfileServiceImpl implements ProfileService {
   private final ProfileRepository profileRepository;
   private final ProfileMapper profileMapper;
   private final PostRepository postRepository;
+  private final S3StorageService s3StorageService;
+  private final AuthService authService;
+  private final AppUserRepository appUserRepository;
 
   @Override @Transactional(readOnly = true)
   public ProfileDto getProfile(UUID userId) {
@@ -29,7 +38,7 @@ public class ProfileServiceImpl implements ProfileService {
   }
   
   private List<Integer> calculatePostByArea(UUID userId) {
-      List<Object[]> results = postRepository.countAcknowledgedPostsGroupedByLevel(userId);
+      List<Object[]> results = postRepository.countUserPostsGroupedByLevel(userId);
       // Array mapping: [LOCALITY, DISTRICT, STATE, NATIONAL]
       int[] counts = new int[4];
       for (Object[] row : results) {
@@ -46,7 +55,7 @@ public class ProfileServiceImpl implements ProfileService {
   }
 
   @Override @Transactional
-  public ProfileDto upsertProfile(UUID userId, UpsertProfileRequest request) {
+  public ProfileDto upsertProfile(UUID userId, UpsertProfileRequest request, MultipartFile file) {
     Profile profile = profileRepository.findById(userId).orElseGet(() -> {
       Profile p = new Profile();
       p.setId(userId);
@@ -56,7 +65,34 @@ public class ProfileServiceImpl implements ProfileService {
     });
     profile.setName(request.name());
     profile.setEmail(request.email());
-    profile.setImageUrl(request.imageUrl());
+    if (file != null && !file.isEmpty()) {
+        profile.setImageUrl(s3StorageService.uploadFiles(List.of(file)).get(0));
+    } else {
+        profile.setImageUrl(request.imageUrl());
+    }
     return profileMapper.toDto(profileRepository.save(profile), calculatePostByArea(userId));
+  }
+
+  @Override @Transactional
+  public void requestEmailChange(UUID userId, String newEmail) {
+    if (appUserRepository.findByEmail(newEmail).isPresent()) {
+        throw new BadRequestException("Email already taken");
+    }
+    authService.requestOtp(newEmail);
+  }
+
+  @Override @Transactional
+  public void verifyEmailChange(UUID userId, String newEmail, String code) {
+    authService.verifyOtpOnly(newEmail, code);
+    
+    AppUser user = appUserRepository.findById(userId)
+        .orElseThrow(() -> new NotFoundException("User not found"));
+    user.setEmail(newEmail);
+    appUserRepository.save(user);
+
+    Profile profile = profileRepository.findById(userId)
+        .orElseThrow(() -> new NotFoundException("Profile not found"));
+    profile.setEmail(newEmail);
+    profileRepository.save(profile);
   }
 }

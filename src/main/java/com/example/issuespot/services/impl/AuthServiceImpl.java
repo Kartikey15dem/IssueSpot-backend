@@ -42,14 +42,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override @Transactional
     public AuthVerifyOtpResponse verifyOtp(String email, String code) {
-        AuthOtpCode latest = authOtpCodeRepository.findTopByEmailOrderByCreatedAtDesc(email)
-                .orElseThrow(() -> new BadRequestException("No OTP requested"));
-        if (latest.getConsumedAt() != null) throw new BadRequestException("OTP already used");
-        if (latest.getExpiresAt().isBefore(Instant.now())) throw new BadRequestException("OTP expired");
-        if (!latest.getCodeHash().equals(CryptoUtil.sha256Base64(email + ":" + code + ":" + otpSaltSecret))) throw new BadRequestException("Invalid OTP");
-        
-        latest.setConsumedAt(Instant.now());
-        authOtpCodeRepository.save(latest);
+        verifyOtpOnly(email, code);
 
         AppUser user = appUserRepository.findByEmail(email).orElseGet(() -> {
             AppUser created = new AppUser();
@@ -60,5 +53,17 @@ public class AuthServiceImpl implements AuthService {
         boolean isNewUser = !profileRepository.existsById(user.getId());
         String token = jwtUtil.issueToken(user.getId(), user.getEmail());
         return new AuthVerifyOtpResponse(token, isNewUser);
+    }
+
+    @Override @Transactional
+    public void verifyOtpOnly(String email, String code) {
+        AuthOtpCode latest = authOtpCodeRepository.findTopByEmailOrderByCreatedAtDesc(email)
+                .orElseThrow(() -> new BadRequestException("No OTP requested"));
+        if (latest.getConsumedAt() != null) throw new BadRequestException("OTP already used");
+        if (latest.getExpiresAt().isBefore(Instant.now())) throw new BadRequestException("OTP expired");
+        if (!latest.getCodeHash().equals(CryptoUtil.sha256Base64(email + ":" + code + ":" + otpSaltSecret))) throw new BadRequestException("Invalid OTP");
+        
+        latest.setConsumedAt(Instant.now());
+        authOtpCodeRepository.save(latest);
     }
 }
