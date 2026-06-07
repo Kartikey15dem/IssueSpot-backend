@@ -6,7 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 public interface PostService {
     PagedResponse<PostWithProfileDto> getPostsByLevel(String level, String locality, String district, String state, String country, Double lat, Double lon, int page, int limit);
     ActiveIssuesDto getActiveIssuesCount(String level);
-    void createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files);
+    PostWithProfileDto createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files);
     void deletePost(UUID userId, UUID postId);
     void toggleLike(UUID userId, UUID postId);
         PagedResponse<CommentDto> getComments(UUID postId, int page, int limit);

@@ -64,7 +64,7 @@ public class PostServiceImpl implements PostService {
   }
 
   @Override @Transactional
-  public void createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files) {
+  public PostWithProfileDto createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files) {
     Profile profile = profileRepository.findById(userId).orElseThrow(() -> new BadRequestException("Profile missing"));
     Post post = new Post();
     post.setUserId(userId);
@@ -86,22 +86,28 @@ public class PostServiceImpl implements PostService {
     if (request.coordinates() != null) {
         post.setCoordinates(geometryFactory.createPoint(new Coordinate(request.coordinates().longitude(), request.coordinates().latitude())));
     }
-        postRepository.save(post);
+        Post savedPost = postRepository.save(post);
+        
+        // Increment profile post count
+        profile.setTotalPosts(profile.getTotalPosts() + 1);
+        profileRepository.save(profile);
+
         // Update active issues count
-        activeIssuesCountRepository.findById(post.getPostLevel().name()).ifPresentOrElse(
+        activeIssuesCountRepository.findById(savedPost.getPostLevel().name()).ifPresentOrElse(
             c -> {
                 c.setTotalActiveIssues(c.getTotalActiveIssues() + 1);
                 activeIssuesCountRepository.save(c);
             },
             () -> {
                 ActiveIssuesCount c = new ActiveIssuesCount();
-                c.setLevel(post.getPostLevel().name());
+                c.setLevel(savedPost.getPostLevel().name());
                 c.setTotalActiveIssues(1);
                 c.setUpdatedAt(Instant.now());
                 activeIssuesCountRepository.save(c);
             }
         );
     
+    return postMapper.toDto(savedPost, profile, false, false);
   }
 
   @Override @Transactional
