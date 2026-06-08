@@ -54,7 +54,8 @@ public class PostServiceImpl implements PostService {
     } else {
         postsPage = postRepository.findByPostLevelOrderByCreatedAtDesc(pl, pageable);
     }
-    return toPagedResponse(postsPage);
+    int activeIssuesCount = activeIssuesCountRepository.findById(pl.name()).map(c -> c.getTotalActiveIssues()).orElse(0);
+    return toPagedResponse(postsPage, activeIssuesCount);
   }
 
   @Override @Transactional(readOnly = true)
@@ -158,7 +159,7 @@ public class PostServiceImpl implements PostService {
     Integer prevKey = commentsPage.hasPrevious() ? commentsPage.getNumber() - 1 : null;
     Integer nextKey = commentsPage.hasNext() ? commentsPage.getNumber() + 1 : null;
     
-    return new PagedResponse<>(dtos, prevKey, nextKey);
+    return new PagedResponse<>(dtos, prevKey, nextKey, null);
   }
 
   @Override @Transactional
@@ -193,7 +194,7 @@ public class PostServiceImpl implements PostService {
         case "POPULAR" -> postRepository.findByUserIdOrderByLikesDesc(userId, pageable);
         default -> postRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
     };
-    return toPagedResponse(postsPage);
+    return toPagedResponse(postsPage, null);
   }
 
   @Override @Transactional(readOnly = true)
@@ -204,16 +205,16 @@ public class PostServiceImpl implements PostService {
         case "POPULAR" -> postRepository.findLikedPostsByUserOrderByLikesDesc(userId, pageable);
         default -> postRepository.findLikedPostsByUserOrderByCreatedAtDesc(userId, pageable);
     };
-    return toPagedResponse(postsPage);
+    return toPagedResponse(postsPage, null);
   }
 
-  private PagedResponse<PostWithProfileDto> toPagedResponse(Page<Post> postsPage) {
+  private PagedResponse<PostWithProfileDto> toPagedResponse(Page<Post> postsPage, Integer activeIssuesCount) {
     Optional<UUID> currentUserId = SecurityUtil.currentUserId(); Set<UUID> userIds = new HashSet<>();
     postsPage.getContent().forEach(p -> userIds.add(p.getUserId()));
     Map<UUID, Profile> profileMap = new HashMap<>();
     profileRepository.findAllById(userIds).forEach(pr -> profileMap.put(pr.getId(), pr));
     List<PostWithProfileDto> dtos = postsPage.getContent().stream().map(p -> { boolean isLiked = currentUserId.map(uid -> postAckRepository.existsById(new PostAckId(uid, p.getId()))).orElse(false); boolean isReported = currentUserId.map(uid -> postReportRepository.existsByPostIdAndUserId(p.getId(), uid)).orElse(false); return postMapper.toDto(p, profileMap.get(p.getUserId()), isLiked, isReported); }).toList();
-    return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null);
+    return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null, null);
   }
 
   @Override @Transactional(readOnly = true)
@@ -228,7 +229,7 @@ public class PostServiceImpl implements PostService {
         Profile prof = profileMap.get(p.getUserId());
         boolean isLiked = currentUserId.map(uid -> postAckRepository.existsById(new PostAckId(uid, p.getId()))).orElse(false); boolean isReported = currentUserId.map(uid -> postReportRepository.existsByPostIdAndUserId(p.getId(), uid)).orElse(false); dtos.add(postMapper.toDto(p, prof, isLiked, isReported));
     }
-    return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null);
+    return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null, null);
   }
 
   @Override @Transactional(readOnly = true)
