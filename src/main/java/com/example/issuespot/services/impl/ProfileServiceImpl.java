@@ -32,7 +32,7 @@ public class ProfileServiceImpl implements ProfileService {
   @Override @Transactional(readOnly = true)
   public ProfileDto getProfile(UUID userId) {
     Profile profile = profileRepository.findById(userId)
-        .orElseThrow(() -> new NotFoundException("Profile not found"));
+        .orElseThrow(() -> new NotFoundException("Profile not found", "Profile not found."));
     
     return profileMapper.toDto(profile, calculatePostByArea(userId));
   }
@@ -76,7 +76,7 @@ public class ProfileServiceImpl implements ProfileService {
   @Override @Transactional
   public void requestEmailChange(UUID userId, String newEmail) {
     if (appUserRepository.findByEmail(newEmail).isPresent()) {
-        throw new BadRequestException("Email already taken");
+        throw new BadRequestException("Email already in use", "This email is already in use.");
     }
     authService.requestOtp(newEmail);
   }
@@ -86,12 +86,12 @@ public class ProfileServiceImpl implements ProfileService {
     authService.verifyOtpOnly(newEmail, code);
     
     AppUser user = appUserRepository.findById(userId)
-        .orElseThrow(() -> new NotFoundException("User not found"));
+        .orElseThrow(() -> new NotFoundException("User not found", "We couldn't find your account. Please sign in again."));
     user.setEmail(newEmail);
     appUserRepository.save(user);
 
     Profile profile = profileRepository.findById(userId)
-        .orElseThrow(() -> new NotFoundException("Profile not found"));
+        .orElseThrow(() -> new NotFoundException("Profile not found", "Profile not found."));
     profile.setEmail(newEmail);
     profileRepository.save(profile);
   }

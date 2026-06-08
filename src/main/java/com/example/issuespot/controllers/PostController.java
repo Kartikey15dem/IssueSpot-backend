@@ -9,7 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.http.MediaType;
 import java.util.List;
 import java.util.UUID;
-import com.example.issuespot.exceptions.BadRequestException;
+import com.example.issuespot.exceptions.UnauthorizedException;
 
 @RestController @RequestMapping("/api/v1/posts") @RequiredArgsConstructor
 public class PostController {
@@ -30,19 +30,19 @@ public class PostController {
   public PostWithProfileDto createPost(
       @RequestPart("request") @Valid CreatePostRequest request,
       @RequestPart(value = "files", required = false) List<MultipartFile> files) {
-    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
+    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new UnauthorizedException("Unauthorized"));
     return postService.createPost(userId, request, files);
   }
   
   @DeleteMapping("/{postId}")
   public void deletePost(@PathVariable UUID postId) {
-    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
+    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new UnauthorizedException("Unauthorized"));
     postService.deletePost(userId, postId);
   }
   
   @PostMapping("/{postId}/like") 
   public void toggleLike(@PathVariable UUID postId) {
-    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
+    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new UnauthorizedException("Unauthorized"));
     postService.toggleLike(userId, postId);
   }
 
@@ -56,19 +56,19 @@ public class PostController {
 
   @PostMapping("/{postId}/comments") 
   public void addComment(@PathVariable UUID postId, @Valid @RequestBody AddCommentRequest request) {
-    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
+    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new UnauthorizedException("Unauthorized"));
     postService.addComment(userId, postId, request.comment());
   }
 
   @PostMapping("/{postId}/report") 
   public void reportPost(@PathVariable UUID postId, @RequestBody ReportPostRequest request) {
-    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
+    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new UnauthorizedException("Unauthorized"));
     postService.reportPost(userId, postId, request != null ? request.reason() : null);
   }
 
   @PostMapping("/{postId}/share") 
   public void sharePost(@PathVariable UUID postId) {
-    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new BadRequestException("Unauthorized"));
+    UUID userId = SecurityUtil.currentUserId().orElseThrow(() -> new UnauthorizedException("Unauthorized"));
     postService.sharePost(userId, postId);
   }
 

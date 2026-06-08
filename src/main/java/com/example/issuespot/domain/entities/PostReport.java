@@ -14,6 +14,7 @@ public class PostReport {
   private UUID postId;
   @Column(name = "user_id", nullable = false)
   private UUID userId;
+  @Column(columnDefinition = "text")
   private String reason;
   @CreationTimestamp @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;

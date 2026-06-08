@@ -18,7 +18,7 @@ public class Post {
   private UUID id;
   @Column(name = "user_id", nullable = false) private UUID userId;
    @Column(name = "post_level", nullable = false) private PostLevel postLevel;
-  @Column(name = "post_text", nullable = false) private String postText;
+  @Column(name = "post_text", nullable = false, columnDefinition = "text") private String postText;
    @Column(name = "media_type") private MediaType mediaType;
   @JdbcTypeCode(SqlTypes.ARRAY)
   @Column(name = "media_urls", columnDefinition = "text[]") private List<String> mediaUrls;

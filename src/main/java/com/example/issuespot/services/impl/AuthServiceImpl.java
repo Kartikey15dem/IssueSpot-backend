@@ -58,10 +58,10 @@ public class AuthServiceImpl implements AuthService {
     @Override @Transactional
     public void verifyOtpOnly(String email, String code) {
         AuthOtpCode latest = authOtpCodeRepository.findTopByEmailOrderByCreatedAtDesc(email)
-                .orElseThrow(() -> new BadRequestException("No OTP requested"));
-        if (latest.getConsumedAt() != null) throw new BadRequestException("OTP already used");
-        if (latest.getExpiresAt().isBefore(Instant.now())) throw new BadRequestException("OTP expired");
-        if (!latest.getCodeHash().equals(CryptoUtil.sha256Base64(email + ":" + code + ":" + otpSaltSecret))) throw new BadRequestException("Invalid OTP");
+                .orElseThrow(() -> new BadRequestException("No OTP requested", "Please request a new OTP and try again."));
+        if (latest.getConsumedAt() != null) throw new BadRequestException("OTP already used", "This OTP has already been used. Please request a new one.");
+        if (latest.getExpiresAt().isBefore(Instant.now())) throw new BadRequestException("OTP expired", "This OTP has expired. Please request a new one.");
+        if (!latest.getCodeHash().equals(CryptoUtil.sha256Base64(email + ":" + code + ":" + otpSaltSecret))) throw new BadRequestException("Invalid OTP", "Invalid OTP.");
         
         latest.setConsumedAt(Instant.now());
         authOtpCodeRepository.save(latest);
