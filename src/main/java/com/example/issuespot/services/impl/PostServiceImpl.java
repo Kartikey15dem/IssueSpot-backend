@@ -214,7 +214,7 @@ public class PostServiceImpl implements PostService {
     Map<UUID, Profile> profileMap = new HashMap<>();
     profileRepository.findAllById(userIds).forEach(pr -> profileMap.put(pr.getId(), pr));
     List<PostWithProfileDto> dtos = postsPage.getContent().stream().map(p -> { boolean isLiked = currentUserId.map(uid -> postAckRepository.existsById(new PostAckId(uid, p.getId()))).orElse(false); boolean isReported = currentUserId.map(uid -> postReportRepository.existsByPostIdAndUserId(p.getId(), uid)).orElse(false); return postMapper.toDto(p, profileMap.get(p.getUserId()), isLiked, isReported); }).toList();
-    return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null, null);
+    return new PagedResponse<>(dtos, postsPage.hasPrevious() ? postsPage.getNumber() - 1 : null, postsPage.hasNext() ? postsPage.getNumber() + 1 : null, activeIssuesCount);
   }
 
   @Override @Transactional(readOnly = true)
