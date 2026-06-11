@@ -28,7 +28,10 @@ public class Post {
   private String district;
   private String state;
   private String country;
+  
+  // PostGIS Spatial Object mapping. '4326' enforces standard WGS84 GPS latitude/longitude.
   @Column(columnDefinition = "geography(Point, 4326)") private Point coordinates;
+  
   @CreationTimestamp @Column(name = "created_at", nullable = false, updatable = false)
   private Instant createdAt;
   @UpdateTimestamp @Column(name = "updated_at", nullable = false)

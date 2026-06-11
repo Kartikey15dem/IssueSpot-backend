@@ -37,6 +37,12 @@ public class ProfileServiceImpl implements ProfileService {
     return profileMapper.toDto(profile, calculatePostByArea(userId));
   }
   
+  /* 
+   * --- PROFILE ANALYTICS AGGREGATION ---
+   * Smartly groups a user's total posts by their geographic hierarchy level.
+   * This provides the data for the 'Posts by Area' bar charts on the mobile profile UI.
+   * Operates via an optimized GROUP BY SQL query instead of fetching all posts.
+   */
   private List<Integer> calculatePostByArea(UUID userId) {
       List<Object[]> results = postRepository.countUserPostsGroupedByLevel(userId);
       // Array mapping: [LOCALITY, DISTRICT, STATE, NATIONAL]

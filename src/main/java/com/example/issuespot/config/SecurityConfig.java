@@ -13,6 +13,11 @@ public class SecurityConfig {
     http.csrf(AbstractHttpConfigurer::disable)
         .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth
+            /* WHY PERMIT ALL FOR THESE ENDPOINTS:
+             * /api/v1/auth/** : Needed for unauthenticated users to request/verify OTPs to login.
+             * /api/v1/posts/** (GET) : The feed is public. We want users to see issues without logging in.
+             * Any mutating actions (POST/PUT/DELETE) on posts still require authentication.
+             */
             .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/s3-v2-test").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/v1/posts/**").permitAll()

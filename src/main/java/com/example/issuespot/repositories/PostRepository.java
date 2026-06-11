@@ -12,11 +12,11 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   long countByPostLevel(com.example.issuespot.domain.enums.PostLevel postLevel);
   Page<Post> findByPostLevelOrderByCreatedAtDesc(com.example.issuespot.domain.enums.PostLevel postLevel, Pageable pageable);
   Page<Post> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
-    Page<Post> findByPostTextContainingIgnoreCaseAndPostLevel(String query, PostLevel postLevel, Pageable pageable);
+  Page<Post> findByPostTextContainingIgnoreCaseAndPostLevel(String query, PostLevel postLevel, Pageable pageable);
   Page<Post> findByUserIdOrderByCreatedAtAsc(UUID userId, Pageable pageable);
   Page<Post> findByUserIdOrderByLikesDesc(UUID userId, Pageable pageable);
   
-    @Query("SELECT p FROM Post p JOIN PostAck a ON p.id = a.id.postId WHERE a.id.userId = :userId ORDER BY a.createdAt DESC")
+  @Query("SELECT p FROM Post p JOIN PostAck a ON p.id = a.id.postId WHERE a.id.userId = :userId ORDER BY a.createdAt DESC")
   Page<Post> findLikedPostsByUserOrderByCreatedAtDesc(@Param("userId") UUID userId, Pageable pageable);
   @Query("SELECT p FROM Post p JOIN PostAck a ON p.id = a.id.postId WHERE a.id.userId = :userId ORDER BY a.createdAt ASC")
   Page<Post> findLikedPostsByUserOrderByCreatedAtAsc(@Param("userId") UUID userId, Pageable pageable);
@@ -28,9 +28,22 @@ public interface PostRepository extends JpaRepository<Post, UUID> {
   Page<Post> findByPostLevelAndStateOrderByCreatedAtDesc(com.example.issuespot.domain.enums.PostLevel postLevel, String state, Pageable pageable);
   Page<Post> findByPostLevelAndCountryOrderByCreatedAtDesc(com.example.issuespot.domain.enums.PostLevel postLevel, String country, Pageable pageable);
   
+  /* 
+   * --- POSTGIS SPATIAL QUERY ---
+   * Uses native PostGIS functions for hyper-accurate radius-based filtering:
+   * - ST_MakePoint: Constructs the spatial point from raw lat/lon.
+   * - ST_SetSRID(..., 4326): Locks the projection to standard WGS84 GPS coordinate system.
+   * - ST_DWithin: Rapidly finds posts within the 'radiusInMeters' threshold.
+   */
   @Query(value = "SELECT * FROM posts WHERE CAST(post_level AS text) = :#{#postLevel.name()} AND ST_DWithin(coordinates, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326), :radius) ORDER BY created_at DESC", nativeQuery = true)
   Page<Post> findByPostLevelAndCoordinatesNear(@Param("postLevel") com.example.issuespot.domain.enums.PostLevel postLevel, @Param("lat") double lat, @Param("lon") double lon, @Param("radius") double radiusInMeters, Pageable pageable);
 
+  /* 
+   * --- PROFILE ANALYTICS AGGREGATION ---
+   * Smartly groups a user's total posts by their geographic hierarchy level.
+   * This provides the data for the 'Posts by Area' bar charts on the mobile profile UI.
+   * Operates via an optimized GROUP BY SQL query instead of fetching all posts.
+   */
   @Query("SELECT p.postLevel, COUNT(p) FROM Post p WHERE p.userId = :userId GROUP BY p.postLevel")
   java.util.List<Object[]> countUserPostsGroupedByLevel(@Param("userId") UUID userId);
 }

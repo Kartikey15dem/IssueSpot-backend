@@ -27,6 +27,12 @@ public class S3StorageService {
     @Value("${aws.s3.endpoint}")
     private String endpointUrl;
 
+    /* ===================================================================================
+     * SECTION: CLOUD STORAGE & FILE UPLOAD
+     * ===================================================================================
+     * Seamlessly pipes byte streams directly to Supabase's S3-compatible storage.
+     * Eliminates intermediate disk writing on the backend for performance.
+     */
     public List<String> uploadFiles(List<MultipartFile> files) {
 
         List<String> fileUrls = new ArrayList<>();
@@ -48,6 +54,7 @@ public class S3StorageService {
                                 ? file.getOriginalFilename().replaceAll("\\s+", "_")
                                 : "file";
 
+                // Uses UUIDs to prevent file name collisions globally when multiple users upload
                 String fileName =
                         UUID.randomUUID().toString().replace("-", "")
                                 + "_"

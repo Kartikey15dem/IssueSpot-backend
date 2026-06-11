@@ -15,6 +15,14 @@ import com.example.issuespot.exceptions.UnauthorizedException;
 public class PostController {
   private final PostService postService;
   
+  /* ===================================================================================
+   * SECTION: FEED PAGINATION ENDPOINT
+   * ===================================================================================
+   * Primary consumer is the mobile app's RemoteMediator. 
+   * Designed to be highly flexible for varied location permissions:
+   * It gracefully accepts exact coordinates (lat/lon) or string-based hierarchical zones
+   * depending on what the user opted into on the client side.
+   */
   @GetMapping 
   public PagedResponse<PostWithProfileDto> listPosts(
       @RequestParam(required=false) String level, @RequestParam(required=false) String post_level,

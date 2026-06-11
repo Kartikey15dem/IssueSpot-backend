@@ -16,6 +16,13 @@ public class JwtUtil {
   public String issueToken(UUID userId, String email) {
     Instant now = Instant.now();
     JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();
+    
+    /* WHY THESE SPECIFIC CLAIMS:
+     * We encode the UUID directly into the 'subject' (sub) claim.
+     * This allows the `SecurityUtil.currentUserId()` helper to extract the UUID 
+     * synchronously from the Request Context without needing a database lookup 
+     * on every single authenticated API request, massively boosting performance.
+     */
     JwtClaimsSet claims = JwtClaimsSet.builder()
         .issuer("issuespot")
         .issuedAt(now)

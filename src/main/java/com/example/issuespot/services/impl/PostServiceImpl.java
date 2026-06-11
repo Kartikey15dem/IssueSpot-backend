@@ -31,6 +31,18 @@ public class PostServiceImpl implements PostService {
   private final PostMapper postMapper;
   private final GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), 4326);
 
+  /* ===================================================================================
+   * SECTION: LOCATION-BASED FEED FETCHING & PAGING
+   * ===================================================================================
+   * This method acts as the primary data source for the mobile client's Home Screen feed
+   * and powers the offline-first architecture via Android's RemoteMediator.
+   * 
+   * Location Logic:
+   * 1. If exact GPS coordinates (lat/lon) are provided, it performs a highly accurate 
+   *    PostGIS spatial radius search (ST_DWithin).
+   * 2. If GPS permissions are denied but textual location is present (user chose to 
+   *    continue without location), it falls back to string-matching the geographical hierarchy.
+   */
   @Override @Transactional(readOnly = true)
   public PagedResponse<PostWithProfileDto> getPostsByLevel(String level, String locality, String district, String state, String country, Double lat, Double lon, int page, int limit) {
     PostLevel pl = PostLevel.valueOf(level.toUpperCase());
@@ -55,7 +67,11 @@ public class PostServiceImpl implements PostService {
         postsPage = postRepository.findByPostLevelOrderByCreatedAtDesc(pl, pageable);
     }
     
-    // Recalculate live count to ensure accuracy
+    /* --- ACTIVE ISSUES SYNCHRONIZATION ---
+     * Smartly recalculates the active issue count dynamically upon feed requests.
+     * Rather than relying solely on async triggers, this guarantees the mobile UI 
+     * always receives the absolute 'truth' when refreshing, curing sync lag.
+     */
     long liveCount = postRepository.countByPostLevel(pl);
     activeIssuesCountRepository.findById(pl.name()).ifPresentOrElse(
         c -> {
@@ -76,6 +92,14 @@ public class PostServiceImpl implements PostService {
     return toPagedResponse(postsPage, (int) liveCount);
   }
 
+  /* ===================================================================================
+   * SECTION: POST CREATION & MULTIPART UPLOAD
+   * ===================================================================================
+   * Triggered via Android's WorkManager for reliable background uploading.
+   * 1. Uploads compressed media concurrently to S3 (Supabase).
+   * 2. Transforms raw lat/lon into a PostGIS `Point` geometry.
+   * 3. Atomically increments denormalized profile stats and active issue counts.
+   */
   @Override @Transactional
   public PostWithProfileDto createPost(UUID userId, CreatePostRequest request, List<MultipartFile> files) {
     Profile profile = profileRepository.findById(userId).orElseThrow(() -> new BadRequestException("Profile missing"));
@@ -220,6 +244,12 @@ public class PostServiceImpl implements PostService {
     return toPagedResponse(postsPage, null);
   }
 
+  /* --- PAGING3 METADATA MAPPING ---
+   * Bridges Spring Data's `Page` object to Android Paging3's required structure.
+   * - Maps prevKey/nextKey dynamically.
+   * - Aggregates interaction state (isLiked, isReported) for the current user 
+   *   in a single optimized mapping pass.
+   */
   private PagedResponse<PostWithProfileDto> toPagedResponse(Page<Post> postsPage, Integer activeIssuesCount) {
     Optional<UUID> currentUserId = SecurityUtil.currentUserId(); Set<UUID> userIds = new HashSet<>();
     postsPage.getContent().forEach(p -> userIds.add(p.getUserId()));
