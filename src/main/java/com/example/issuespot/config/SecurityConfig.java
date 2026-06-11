@@ -16,7 +16,6 @@ public class SecurityConfig {
             .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/s3-v2-test").permitAll()
             .requestMatchers(HttpMethod.GET, "/api/v1/posts/**").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/v1/active_issues_count/**").permitAll()
             .anyRequest().authenticated())
         .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> {}));
     return http.build();

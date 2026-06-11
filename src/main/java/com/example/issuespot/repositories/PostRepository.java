@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import com.example.issuespot.domain.enums.PostLevel;
 
 public interface PostRepository extends JpaRepository<Post, UUID> {
+  long countByPostLevel(com.example.issuespot.domain.enums.PostLevel postLevel);
   Page<Post> findByPostLevelOrderByCreatedAtDesc(com.example.issuespot.domain.enums.PostLevel postLevel, Pageable pageable);
   Page<Post> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
     Page<Post> findByPostTextContainingIgnoreCaseAndPostLevel(String query, PostLevel postLevel, Pageable pageable);

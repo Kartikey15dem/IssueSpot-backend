@@ -54,14 +54,26 @@ public class PostServiceImpl implements PostService {
     } else {
         postsPage = postRepository.findByPostLevelOrderByCreatedAtDesc(pl, pageable);
     }
-    int activeIssuesCount = activeIssuesCountRepository.findById(pl.name()).map(c -> c.getTotalActiveIssues()).orElse(0);
-    return toPagedResponse(postsPage, activeIssuesCount);
-  }
+    
+    // Recalculate live count to ensure accuracy
+    long liveCount = postRepository.countByPostLevel(pl);
+    activeIssuesCountRepository.findById(pl.name()).ifPresentOrElse(
+        c -> {
+            if (c.getTotalActiveIssues() != (int) liveCount) {
+                c.setTotalActiveIssues((int) liveCount);
+                activeIssuesCountRepository.save(c);
+            }
+        },
+        () -> {
+            ActiveIssuesCount c = new ActiveIssuesCount();
+            c.setLevel(pl.name());
+            c.setTotalActiveIssues((int) liveCount);
+            c.setUpdatedAt(Instant.now());
+            activeIssuesCountRepository.save(c);
+        }
+    );
 
-  @Override @Transactional(readOnly = true)
-  public ActiveIssuesDto getActiveIssuesCount(String level) {
-    return activeIssuesCountRepository.findById(level.toUpperCase()).map(c -> new ActiveIssuesDto(c.getLevel(), c.getTotalActiveIssues(), c.getUpdatedAt()))
-        .orElse(new ActiveIssuesDto(level.toUpperCase(), 0, Instant.now()));
+    return toPagedResponse(postsPage, (int) liveCount);
   }
 
   @Override @Transactional
